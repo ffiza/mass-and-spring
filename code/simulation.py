@@ -21,7 +21,7 @@ def _calculate_forces(masses: np.ndarray,
     """
     Calculate a 2D array with the forces of a given particle. Element
     `[i, 0]` of the array is the force acting on particle `i` in the x-axis.
-    Element `[i, 1]` of the array is the force acting on particle `i` 
+    Element `[i, 1]` of the array is the force acting on particle `i`
     in the y-axis.
 
     Parameters
