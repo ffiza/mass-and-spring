@@ -6,6 +6,8 @@ import argparse
 import numpy as np
 import utils
 
+from ui.grid import Grid
+
 PARTICLE_COLORS = [
     "#FA4656", "#2C73D6", "#00D75B", "#FEF058", "#FFAA4C", "#A241B2"]
 
@@ -25,8 +27,8 @@ class Animation:
         """
         pygame.init()
         self.result = result
-        self.running = False
         self.config = yaml.safe_load(open("configs/global.yml"))
+        self.running = int(self.config["ANIMATION_STARTUP_RUN_STATE"])
         self.data = df
         self.width = self.config["SCREEN_WIDTH"]
         self.height = self.config["SCREEN_HEIGHT"]
@@ -36,7 +38,8 @@ class Animation:
 
         # Setup window
         self.screen = pygame.display.set_mode(
-            size=(self.width, self.height), flags=pygame.FULLSCREEN, depth=32)
+            size=(self.width, self.height), flags=pygame.FULLSCREEN,
+            depth=self.config["COLOR_DEPTH"])
         pygame.display.set_caption(self.config["WINDOW_NAME"])
 
         self.clock = pygame.time.Clock()
@@ -56,6 +59,15 @@ class Animation:
         # Setup fonts
         font = self.config["FONT"]
         self.font = pygame.font.Font(f"fonts/{font}.ttf", 30)
+
+        # Setup grid
+        self.grid = Grid(
+            sep=self.config["GRID_SEPARATION_PX"],
+            xmin=0.0, xmax=self.config["SCREEN_WIDTH"],
+            ymin=0.0, ymax=self.config["SCREEN_HEIGHT"],
+            width=self.config["GRID_MINOR_LW_PX"],
+            color=self.config["GRID_COLOR"],
+            major_lw_factor=self.config["GRID_MAJOR_LW_FACTOR"])
 
     @staticmethod
     def _quit() -> None:
@@ -117,21 +129,6 @@ class Animation:
     def _reset_animation(self) -> None:
         self.idx = 0
         self.running = False
-
-    def _draw_indicator_lines(self) -> None:
-        """
-        Draw lines to guide the eye.
-        """
-        pygame.draw.line(
-            surface=self.screen,
-            color=self.config["INDICATORS_COLOR"],
-            start_pos=(0, self.height / 2),
-            end_pos=(self.width, self.height / 2))
-        pygame.draw.line(
-            surface=self.screen,
-            color=self.config["INDICATORS_COLOR"],
-            start_pos=(self.width / 2, 0),
-            end_pos=(self.width / 2, self.height))
 
     def _calculate_spring_points(
             self, xy1: tuple, xy2: tuple,
@@ -321,13 +318,6 @@ class Animation:
             True, self.config["INDICATORS_COLOR"])
         self.screen.blit(
             text,
-            text.get_rect(bottomleft=(x0, self.height - 3 * x0)))
-        delta_energy = self.data['Energy'].iloc[idx] - self.initial_energy
-        text = self.font.render(
-            f"Energy Variation: {(delta_energy):.2f} J",
-            True, self.config["INDICATORS_COLOR"])
-        self.screen.blit(
-            text,
             text.get_rect(bottomleft=(x0, self.height - 2 * x0)))
         text = self.font.render(
             f"Time: {self.data['Time'].iloc[idx]:.1f} s",
@@ -346,7 +336,7 @@ class Animation:
             The index of the data frame to plot.
         """
 
-        self._draw_indicator_lines()
+        self.grid.draw(self.screen)
         self._draw_springs(idx=idx)
         self._draw_energy_bars(idx=idx)
         self._draw_energy_and_time_values(idx=idx)
