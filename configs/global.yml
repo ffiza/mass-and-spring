@@ -16,6 +16,7 @@ TEXT_OFFSET:                    0.009
 INDICATORS_COLOR:               "gray75"
 BACKGROUND_COLOR:               "gray10"
 FONT:                           "Roboto-Bold"
+DEBUG_TEXT_SEP:                 14
 TEXT_MAX_ALPHA:                 255
 ALPHA_DECAY_PER_FRAME:          5
 SPRING_N_LOOPS:                 5
@@ -27,4 +28,5 @@ GRID_COLOR:                     "gray25"
 GRID_MAJOR_LW_FACTOR:           3
 GRID_MINOR_LW_PX:               1
 ANIMATION_STARTUP_RUN_STATE:    0
+ANIMATION_STARTUP_DEBUG_STATE:  1
 COLOR_DEPTH:                    32

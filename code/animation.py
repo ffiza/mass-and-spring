@@ -7,6 +7,7 @@ import numpy as np
 import utils
 
 from ui.grid import Grid
+from ui.debugger import Debugger
 
 PARTICLE_COLORS = [
     "#FA4656", "#2C73D6", "#00D75B", "#FEF058", "#FFAA4C", "#A241B2"]
@@ -30,10 +31,13 @@ class Animation:
         self.config = yaml.safe_load(open("configs/global.yml"))
         self.running = int(self.config["ANIMATION_STARTUP_RUN_STATE"])
         self.data = df
+        self.n_frames = len(self.data)
         self.width = self.config["SCREEN_WIDTH"]
         self.height = self.config["SCREEN_HEIGHT"]
         self.n_bodies = utils.get_particle_count_from_df(self.data)
         self.initial_energy = self.data['Energy'].iloc[0]
+        self.debugging = int(self.config["ANIMATION_STARTUP_DEBUG_STATE"])
+        self.debugger = Debugger()
         self.idx = 0  # Current simulation snapshot
 
         # Setup window
@@ -95,6 +99,10 @@ class Animation:
             # Reset simulation
             if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                 self._reset_animation()
+
+            # Enable debugging
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_d:
+                self.debugging = not self.debugging
 
     def _transform_coordinates(self,
                                x: np.ndarray,
@@ -354,6 +362,19 @@ class Animation:
 
             self.screen.fill(self.config["BACKGROUND_COLOR"])
             self._draw_elements(idx=self.idx)
+
+            if self.debugging:
+                self.debugger.render(
+                    [f"FPS: {self.clock.get_fps()}",
+                     f"DEBUGGING: {int(self.debugging)}",
+                     f"N_PARTICLES: {self.n_bodies}",
+                     f"CURRENT_SNAPSHOT_IDX: {self.idx}",
+                     f"MAX_SNAPSHOT_IDX: {self.n_frames - 1}",
+                     f"TIME: {self.data['Time'].iloc[self.idx]}",
+                     f"MAX_TIME: {self.data['Time'].iloc[-1]}",
+                     ],
+                    self.screen)
+
             self.clock.tick(self.config["FPS"])
 
             if self.running:
