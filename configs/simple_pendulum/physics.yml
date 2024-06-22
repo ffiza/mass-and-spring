@@ -1,0 +1,4 @@
+TIMESTEP:               0.001  # s
+N_STEPS:                60000
+GRAV_ACCELERATION:      9.8  # m / s^2
+FRICTION_COEF:          0.5  # N * s / m
