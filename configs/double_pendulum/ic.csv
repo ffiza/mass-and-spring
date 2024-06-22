@@ -1,0 +1,4 @@
+ParticleNumber,xPosition_m,yPosition_m,xVelocity_m/s,yVelocity_m/s,Mass_kg,DynamicParticle
+0,0.0,2.0,0.0,0.0,1.0,0
+1,2.0,2.0,0.0,0.0,1.0,1
+1,4.0,2.0,0.0,0.0,1.0,1
