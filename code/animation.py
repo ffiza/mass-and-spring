@@ -8,6 +8,8 @@ import utils
 
 from ui.grid import Grid
 from ui.debugger import Debugger
+from ui.indicator_bar import IndicatorBar
+from ui.text import Text
 
 PARTICLE_COLORS = [
     "#FA4656", "#2C73D6", "#00D75B", "#FEF058", "#FFAA4C", "#A241B2"]
@@ -38,6 +40,7 @@ class Animation:
         self.initial_energy = self.data['Energy'].iloc[0]
         self.debugging = int(self.config["ANIMATION_STARTUP_DEBUG_STATE"])
         self.debugger = Debugger()
+        self.max_time = self.data["Time"].iloc[-1]
         self.idx = 0  # Current simulation snapshot
 
         # Setup window
@@ -55,14 +58,73 @@ class Animation:
                     x=self.data[f"xPosition{i}"].to_numpy(),
                     y=self.data[f"yPosition{i}"].to_numpy())
 
-        # Define scaling factor for energy bars
-        energies = self.data[["Potential", "KineticEnergy", "Energy"]]
-        max_energy = np.max(np.abs(energies.to_numpy()))
-        self.factor = self.height / max_energy / 4
-
         # Setup fonts
         font = self.config["FONT"]
         self.font = pygame.font.Font(f"fonts/{font}.ttf", 30)
+
+        # Define geometry for energy bars
+        energy_cols = ["KineticEnergy", "Potential", "Energy"]
+        self.min_energy = np.min(self.data[energy_cols])
+        self.max_energy = np.max(self.data[energy_cols])
+        self.max_energy_abs = np.max(np.abs(self.data[energy_cols]))
+        self.factor = self.config["SCREEN_HEIGHT"] / self.max_energy_abs / 4
+        bar_sep = self.config["BAR_SEP_FRAC"] * self.config["SCREEN_WIDTH"]
+        self.ind_x0 = self.config["TEXT_START_FRAC"] \
+            * self.config["SCREEN_WIDTH"]
+        bar_base_level = self.config["SCREEN_HEIGHT"] / 2
+        bar_width = self.config["BAR_WIDTH_FRAC"] * self.config["SCREEN_WIDTH"]
+        bar_height = self.config["SCREEN_HEIGHT"] / 4
+
+        # Setup energy bars
+        self.mechanical_energy_bar = IndicatorBar(
+            left=self.ind_x0, top=bar_base_level,
+            width=bar_width, height=bar_height,
+            color=self.config["INDICATORS_COLOR"], fill_direction="vertical")
+        self.potential_energy_bar = IndicatorBar(
+            left=self.ind_x0 + bar_sep, top=bar_base_level,
+            width=bar_width, height=bar_height,
+            color=self.config["INDICATORS_COLOR"], fill_direction="vertical")
+        self.kinetic_energy_bar = IndicatorBar(
+            left=self.ind_x0 + 2 * bar_sep, top=bar_base_level,
+            width=bar_width, height=bar_height,
+            color=self.config["INDICATORS_COLOR"], fill_direction="vertical")
+
+        # Setup the labels of the energy bars
+        start_anchor = "midtop" if self.data["Energy"].iloc[0] >= 0.0 \
+            else "midbottom"
+        self.mechanical_energy_text = Text(
+            loc=(self.ind_x0 + bar_width / 2, bar_base_level),
+            font=self.font, value="E", color=self.config["INDICATORS_COLOR"],
+            anchor=start_anchor)
+        self.potential_energy_text = Text(
+            loc=(self.ind_x0 + bar_width / 2 + bar_sep, bar_base_level),
+            font=self.font, value="U", color=self.config["INDICATORS_COLOR"],
+            anchor="midtop")
+        self.kinetic_energy_text = Text(
+            loc=(self.ind_x0 + bar_width / 2 + 2 * bar_sep, bar_base_level),
+            font=self.font, value="K", color=self.config["INDICATORS_COLOR"],
+            anchor="midtop")
+
+        # Setup time bar
+        self.time_bar = IndicatorBar(
+            left=0,
+            top=self.config["SCREEN_HEIGHT"] - self.config["TIME_BAR_HEIGHT"],
+            width=self.config["SCREEN_WIDTH"],
+            height=self.config["TIME_BAR_HEIGHT"],
+            color=self.config["INDICATORS_COLOR"],
+            fill_direction="horizontal")
+
+        # Set energy and time text boxes
+        self.energy_text = Text(
+            loc=(self.ind_x0, self.config["SCREEN_HEIGHT"] - 2 * self.ind_x0),
+            font=self.font,
+            value=f"Energy: {self.data['Energy'].iloc[0]:.2f} J",
+            color=self.config["INDICATORS_COLOR"])
+        self.time_text = Text(
+            loc=(self.ind_x0, self.config["SCREEN_HEIGHT"] - 1 * self.ind_x0),
+            font=self.font,
+            value=f"Time: {self.data['Time'][0]:.2f} s",
+            color=self.config["INDICATORS_COLOR"])
 
         # Setup grid
         self.grid = Grid(
@@ -194,14 +256,9 @@ class Animation:
 
         return points
 
-    def _draw_springs(self, idx: int) -> None:
+    def _draw_springs(self) -> None:
         """
         Draws all the springs of the system.
-
-        Parameters
-        ----------
-        idx : int
-            The index of the data frame to plot.
         """
         # Read elastic constants to know which springs to draw
         elastic_constants = np.loadtxt(
@@ -211,10 +268,10 @@ class Animation:
             for j in range(i + 1, self.n_bodies):
                 if elastic_constants[i, j] > 0.0:
                     points = self._calculate_spring_points(
-                        xy1=(self.data[f"xPosition{i}"].iloc[idx],
-                             self.data[f"yPosition{i}"].iloc[idx]),
-                        xy2=(self.data[f"xPosition{j}"].iloc[idx],
-                             self.data[f"yPosition{j}"].iloc[idx]),
+                        xy1=(self.data[f"xPosition{i}"].iloc[self.idx],
+                             self.data[f"yPosition{i}"].iloc[self.idx]),
+                        xy2=(self.data[f"xPosition{j}"].iloc[self.idx],
+                             self.data[f"yPosition{j}"].iloc[self.idx]),
                         n_loops=self.config["SPRING_N_LOOPS"],
                         loop_width=self.config["SPRING_LOOP_WIDTH"],
                         base_fraction=self.config["SPRING_BASE_FRACTION"],
@@ -226,73 +283,68 @@ class Animation:
                         width=self.config["SPRING_WIDTH"],
                     )
 
-    def _draw_energy_bars(self, idx: int) -> None:
+    def _update_indicator_bars(self) -> None:
         """
-        Draw the energy bars of the system.
-
-        Parameters
-        ----------
-        idx : int
-            The index of the data frame to plot.
+        Update the values of the energy and time bars to the current snapshot
+        index.
         """
-        # Define geometrical quantities
-        bar_width = self.config["BAR_WIDTH_FRAC"] * self.width
-        bar_sep = self.config["BAR_SEP_FRAC"] * self.width
+        self.mechanical_energy_bar.set_value(
+            - self.data["Energy"].iloc[self.idx] / self.max_energy_abs)
+        self.potential_energy_bar.set_value(
+            - self.data["Potential"].iloc[self.idx] / self.max_energy_abs)
+        self.kinetic_energy_bar.set_value(
+            - self.data["KineticEnergy"].iloc[self.idx] / self.max_energy_abs)
+        self.time_bar.set_value(
+            self.data["Time"].iloc[self.idx] / self.max_time)
 
-        # Draw energy bars
-        x0 = self.config["TEXT_START_FRAC"] * self.width
-        for energy in ["Energy", "Potential", "KineticEnergy"]:
-            y0 = self.height / 2 \
-                - abs(self.data[energy].iloc[idx]) * self.factor
-            bar_height = abs(self.data[energy].iloc[idx]) * self.factor
-            if self.data[energy].iloc[idx] < 0:
-                y0 += abs(self.data[energy].iloc[idx]) * self.factor
-            pygame.draw.rect(
-                self.screen,
-                self.config["INDICATORS_COLOR"],
-                pygame.Rect(
-                    x0,
-                    y0,
-                    bar_width,
-                    bar_height + 1))
-            # The +1 in the previous line fixes minor visualization issues
-            x0 += bar_sep
+    def _draw_bars(self) -> None:
+        """
+        Draw the energy and time bars.
+        """
+        self.mechanical_energy_bar.draw(self.screen)
+        self.potential_energy_bar.draw(self.screen)
+        self.kinetic_energy_bar.draw(self.screen)
+        self.time_bar.draw(self.screen)
 
-        # Draw energy labels
-        x0 = self.config["TEXT_START_FRAC"] * self.width
-        dy = self.config["TEXT_OFFSET"] * self.height
-        letters = ["E", "U", "K"]
-        for i, energy in enumerate(["Energy", "Potential", "KineticEnergy"]):
-            text = self.font.render(letters[i],
-                                    True,
-                                    self.config["INDICATORS_COLOR"])
-            if self.data[energy].iloc[idx] >= 0:
-                self.screen.blit(
-                    text,
-                    text.get_rect(
-                        midtop=(x0 + bar_width / 2, self.height / 2 + dy)))
-            else:
-                self.screen.blit(
-                    text,
-                    text.get_rect(
-                        midbottom=(x0 + bar_width / 2, self.height / 2 - dy)))
-            x0 += bar_sep
+    def _update_text(self) -> None:
+        """
+        Update the values of the energy and text elements to the current
+        snapshot.
+        """
+        self.energy_text.set_value(
+            f"Energy: {self.data['Energy'].iloc[self.idx]:.2f} J")
+        self.time_text.set_value(
+            f"Time: {self.data['Time'].iloc[self.idx]:.1f} s")
 
-    def _draw_particles(self, idx: int) -> None:
+        # Change potential energy label anchor
+        if self.idx >= 1:
+            if (self.data["Potential"].iloc[self.idx] > 0.0) \
+                    and (self.data["Potential"].iloc[self.idx - 1] < 0.0):
+                self.potential_energy_text.set_anchor("midtop")
+            if (self.data["Potential"].iloc[self.idx] < 0.0) \
+                    and (self.data["Potential"].iloc[self.idx - 1] > 0.0):
+                self.potential_energy_text.set_anchor("midbottom")
+
+    def _draw_text(self) -> None:
+        """
+        Draw the energy and time values in the current snapshot.
+        """
+        self.energy_text.draw(self.screen)
+        self.time_text.draw(self.screen)
+        self.mechanical_energy_text.draw(self.screen)
+        self.potential_energy_text.draw(self.screen)
+        self.kinetic_energy_text.draw(self.screen)
+
+    def _draw_particles(self) -> None:
         """
         Draw the particles.
-
-        Parameters
-        ----------
-        idx : int
-            The index of the data frame to plot.
         """
         for i in range(self.n_bodies):
             if self.n_bodies <= len(PARTICLE_COLORS):
                 color = PARTICLE_COLORS[i]
             else:
                 color = PARTICLE_COLORS[0]
-            if idx >= 5 \
+            if self.idx >= 5 \
                     and self.n_bodies <= len(PARTICLE_COLORS):
                 # Trace of the particle
                 pygame.draw.aalines(
@@ -300,39 +352,16 @@ class Animation:
                     color=color,
                     closed=False,
                     points=np.vstack(
-                        (self.data[f"xPosition{i}"].iloc[:idx],
-                         self.data[f"yPosition{i}"].iloc[:idx])).T,
+                        (self.data[f"xPosition{i}"].iloc[:self.idx],
+                         self.data[f"yPosition{i}"].iloc[:self.idx])).T,
                 )
             # Particle as sphere
             pygame.draw.circle(
                 self.screen,
                 color,
-                (self.data[f"xPosition{i}"].iloc[idx],
-                 self.data[f"yPosition{i}"].iloc[idx]),
+                (self.data[f"xPosition{i}"].iloc[self.idx],
+                 self.data[f"yPosition{i}"].iloc[self.idx]),
                 10)
-
-    def _draw_energy_and_time_values(self, idx: int) -> None:
-        """
-        Draw the energy and time values.
-
-        Parameters
-        ----------
-        idx : int
-            The index of the data frame to plot.
-        """
-        x0 = self.config["TEXT_START_FRAC"] * self.width
-        text = self.font.render(
-            f"Energy: {self.data['Energy'].iloc[idx]:.2f} J",
-            True, self.config["INDICATORS_COLOR"])
-        self.screen.blit(
-            text,
-            text.get_rect(bottomleft=(x0, self.height - 2 * x0)))
-        text = self.font.render(
-            f"Time: {self.data['Time'].iloc[idx]:.1f} s",
-            True, self.config["INDICATORS_COLOR"])
-        self.screen.blit(
-            text,
-            text.get_rect(bottomleft=(x0, self.height - 1 * x0)))
 
     def _draw_elements(self, idx: int) -> None:
         """
@@ -345,10 +374,10 @@ class Animation:
         """
 
         self.grid.draw(self.screen)
-        self._draw_springs(idx=idx)
-        self._draw_energy_bars(idx=idx)
-        self._draw_energy_and_time_values(idx=idx)
-        self._draw_particles(idx=idx)
+        self._draw_springs()
+        self._draw_bars()
+        self._draw_text()
+        self._draw_particles()
 
     def run(self) -> None:
         """
@@ -359,6 +388,8 @@ class Animation:
             self._check_events()
             if self.idx >= len(self.data):
                 self._reset_animation()
+            self._update_indicator_bars()
+            self._update_text()
 
             self.screen.fill(self.config["BACKGROUND_COLOR"])
             self._draw_elements(idx=self.idx)
