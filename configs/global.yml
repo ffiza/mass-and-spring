@@ -22,7 +22,7 @@ SPRING_N_LOOPS:                 5
 SPRING_WIDTH:                   2
 SPRING_LOOP_WIDTH:              15
 SPRING_BASE_FRACTION:           0.15
-GRID_SEPARATION_PX:             90
+GRID_SEPARATION_PX:             50
 GRID_COLOR:                     "gray25"
 GRID_MAJOR_LW_FACTOR:           3
 GRID_MINOR_LW_PX:               1
