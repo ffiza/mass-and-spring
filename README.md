@@ -1,4 +1,10 @@
-# Animaciones de masas y resortes
+<div align="center">
+    <h1>Animaciones de masas y resortes</h1>
+</div>
+
+<p align="center">
+    <a href="https://www.python.org/"><img src="https://forthebadge.com/images/badges/made-with-python.svg"></a>
+</p>
 
 Código de Python para resolver la dinámica de masas y resortes. El script principal es `code/simulation.py`. `code/utils.py` contiene funciones útiles y `code/animation.py` genera una animación utilizando PyGame. Todas las unidades están en el sistema internacional.
 
@@ -12,27 +18,24 @@ Para correr tus propias simulaciones tenés que crear una nueva carpeta en `conf
 Una vez creados los archivos de configuración, se puede correr la simulación utilizando
 
 ```
-python nbody/simulation.py --config [nombre_carpeta_config]
+python code/simulation.py --config [nombre_carpeta_config]
 ```
 
 Esto generará un archivo con el nombre `nombre_carpeta_config` en `results/`. Luego, para generar una animación en PyGame usar:
 
 ```
-python nbody/animation.py --result [nombre_carpeta_config]
+python code/animation.py --result [nombre_carpeta_config]
 ```
 
 ### Ejemplos
 
-El repositorio incluye algunos ejemplos.
+El repositorio incluye algunos ejemplos, sus condiciones iniciales y los resultados. A continuación se muestran algunas imagenes de las simulaciones incluidas.
 
-#### `run_01`
-
-Un cuerpo que oscila en una dimensión sin gravedad.
-
-#### `run_03`
-
-Un cuerpo que oscila en dos dimensiones con gravedad.
-
-#### `rope`
-
-Una cuerda bajo la acción de la gravedad, modelada como una secuencia de masas unidas por resortes.
+<p align="center">
+    <a href="https://i.imgur.com/XHzp6aF.png"><img src="https://i.imgur.com/XHzp6aF.png" width=300></a>
+    <a href="https://i.imgur.com/PdtuuLV.png"><img src="https://i.imgur.com/PdtuuLV.png" width=300></a>
+    <a href="https://i.imgur.com/JCKt7aD.png"><img src="https://i.imgur.com/JCKt7aD.png" width=300></a>
+    <a href="https://i.imgur.com/jKlT3YP.png"><img src="https://i.imgur.com/jKlT3YP.png" width=300></a>
+    <a href="https://i.imgur.com/8FteqXH.png"><img src="https://i.imgur.com/8FteqXH.png" width=300></a>
+    <a href="https://i.imgur.com/26XcjxW.png"><img src="https://i.imgur.com/26XcjxW.png" width=300></a>
+</p>
