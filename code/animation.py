@@ -316,7 +316,7 @@ class Animation:
         self.time_text.set_value(
             f"Time: {self.data['Time'].iloc[self.idx]:.1f} s")
 
-        # Change potential energy label anchor
+        # Change potential and mechanical energy label anchors
         if self.idx >= 1:
             if (self.data["Potential"].iloc[self.idx] > 0.0) \
                     and (self.data["Potential"].iloc[self.idx - 1] < 0.0):
@@ -324,6 +324,12 @@ class Animation:
             if (self.data["Potential"].iloc[self.idx] < 0.0) \
                     and (self.data["Potential"].iloc[self.idx - 1] > 0.0):
                 self.potential_energy_text.set_anchor("midbottom")
+            if (self.data["Energy"].iloc[self.idx] > 0.0) \
+                    and (self.data["Energy"].iloc[self.idx - 1] < 0.0):
+                self.mechanical_energy_text.set_anchor("midtop")
+            if (self.data["Energy"].iloc[self.idx] < 0.0) \
+                    and (self.data["Energy"].iloc[self.idx - 1] > 0.0):
+                self.mechanical_energy_text.set_anchor("midbottom")
 
     def _draw_text(self) -> None:
         """
