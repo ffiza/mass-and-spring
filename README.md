@@ -65,18 +65,6 @@ Para correr tus propias simulaciones tenés que crear una nueva carpeta en `conf
 - `elastic_constants.csv`: Archivo que contiene la constante elástica de cada resorte. En esta matriz, el par `(i, j)` indica el valor de la constante elástica del resorte que une la partícula `i` con la partícula `j`. Tanto la diagonal como el triángulo inferior deben ser nulos porque la fuerza elástica es antisimétrica.
 - `natural_lengths.csv`: Archivo que contiene la longitud natural de cada resorte. En esta matriz, el par `(i, j)` indica el valor de la longitud natural del resorte que une la partícula `i` con la partícula `j`. Tanto la diagonal como el triángulo inferior deben ser nulos porque la fuerza elástica es antisimétrica.
 
-Una vez creados los archivos de configuración, se puede correr la simulación utilizando
-
-```bash
-python code/simulation.py --config [nombre_carpeta_config]
-```
-
-Esto generará un archivo con el nombre `nombre_carpeta_config` en `results/`. Luego, para generar una animación en PyGame usar:
-
-```bash
-python code/animation.py --result [nombre_carpeta_config]
-```
-
 # Ejemplos
 
 El repositorio incluye algunos ejemplos, sus condiciones iniciales y los resultados. A continuación se muestran algunas imagenes de las simulaciones incluidas.
